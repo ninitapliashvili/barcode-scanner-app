@@ -12,6 +12,9 @@ from sqlalchemy.exc import SQLAlchemyError
 import base64
 from ipaddress import ip_address, AddressValueError
 import re
+import pyzbar.pyzbar as pyzbar
+import numpy as np
+import cv2
 
 
 # Create a blueprint
@@ -661,3 +664,30 @@ def get_user_warehouses(user_id):
     except SQLAlchemyError as e:
         current_app.logger.error(f"Database error occurred: {str(e)}")
         return jsonify({"error": "Database error"}), 500
+    
+# -------------------- Scan barcode route -------------------- #
+
+@bp.route('/process_barcode', methods=['POST'])
+def process_barcode():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    try:
+        # Read the file to OpenCV format
+        filestr = file.read()
+        npimg = np.frombuffer(filestr, np.uint8)
+        frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+
+        # Decode the barcode using Pyzbar
+        decoded_objects = pyzbar.decode(frame)
+        if decoded_objects:
+            barcodes = [obj.data.decode('utf-8') for obj in decoded_objects]
+            return jsonify({'barcodes': barcodes})
+        else:
+            return jsonify({'error': 'No barcode found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

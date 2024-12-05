@@ -87,6 +87,25 @@ export const getUserWarehousesByUserId = async (userId) => {
   }
 };
 
+export const processBarcode = async (file) => {
+  try {
+    // Create an instance of FormData
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Make the POST request to the process_barcode endpoint
+    const response = await api.post('/process_barcode', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error processing barcode:", error);
+    throw error;
+  }
+};
+
 export const getClientIp = async () => {
   try {
     const response = await api.get('/get-client-ip');
